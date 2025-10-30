@@ -58,26 +58,27 @@ header h1 {
     font-size: 1.1rem;
 }
 
-.player-dropdown {
+.player-input {
     width: 100%;
     padding: 15px;
     font-size: 1rem;
-    border: none;
+    border: 2px solid #e9ecef;
     border-radius: 10px;
     background: white;
-    cursor: pointer;
+    cursor: text;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
-.player-dropdown:hover {
+.player-input:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.15);
 }
 
-.player-dropdown:focus {
+.player-input:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.5);
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.2);
 }
 
 .vs-divider {
@@ -267,6 +268,58 @@ header h1 {
     font-size: 1.1rem;
     line-height: 1.8;
     color: #495057;
+}
+
+.accolades-section {
+    background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.accolade-item {
+    margin: 8px 0;
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.accolade-item .label {
+    opacity: 0.9;
+    font-weight: normal;
+    font-size: 0.9rem;
+}
+
+.ticket-impact {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.ticket-impact h4 {
+    margin: 0 0 10px 0;
+    font-size: 1.3rem;
+}
+
+.ticket-rating {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.ticket-multiplier {
+    font-size: 1.5rem;
+    margin: 10px 0;
+}
+
+.ticket-description {
+    font-size: 1rem;
+    opacity: 0.95;
+    margin-top: 10px;
 }
 
 @media (max-width: 768px) {

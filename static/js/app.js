@@ -13,14 +13,19 @@ async function loadPlayers() {
         const response = await fetch('/api/players');
         allPlayers = await response.json();
         
-        const player1Select = document.getElementById('player1');
-        const player2Select = document.getElementById('player2');
+        const player1List = document.getElementById('player1List');
+        const player2List = document.getElementById('player2List');
         
         allPlayers.forEach(player => {
-            const option1 = new Option(player.full_name, player.id);
-            const option2 = new Option(player.full_name, player.id);
-            player1Select.add(option1);
-            player2Select.add(option2);
+            const option1 = document.createElement('option');
+            option1.value = player.full_name;
+            option1.setAttribute('data-id', player.id);
+            player1List.appendChild(option1);
+            
+            const option2 = document.createElement('option');
+            option2.value = player.full_name;
+            option2.setAttribute('data-id', player.id);
+            player2List.appendChild(option2);
         });
     } catch (error) {
         console.error('Error loading players:', error);
@@ -29,30 +34,42 @@ async function loadPlayers() {
 }
 
 function setupEventListeners() {
-    const player1Select = document.getElementById('player1');
-    const player2Select = document.getElementById('player2');
+    const player1Input = document.getElementById('player1Input');
+    const player2Input = document.getElementById('player2Input');
     const compareBtn = document.getElementById('compareBtn');
     
-    player1Select.addEventListener('change', checkSelection);
-    player2Select.addEventListener('change', checkSelection);
+    player1Input.addEventListener('input', checkSelection);
+    player2Input.addEventListener('input', checkSelection);
     compareBtn.addEventListener('click', comparePlayers);
 }
 
 function checkSelection() {
-    const player1Select = document.getElementById('player1');
-    const player2Select = document.getElementById('player2');
+    const player1Input = document.getElementById('player1Input');
+    const player2Input = document.getElementById('player2Input');
     const compareBtn = document.getElementById('compareBtn');
     
-    if (player1Select.value && player2Select.value && player1Select.value !== player2Select.value) {
+    const player1Valid = isValidPlayer(player1Input.value);
+    const player2Valid = isValidPlayer(player2Input.value);
+    
+    if (player1Valid && player2Valid && player1Input.value !== player2Input.value) {
         compareBtn.disabled = false;
     } else {
         compareBtn.disabled = true;
     }
 }
 
+function isValidPlayer(playerName) {
+    return allPlayers.some(p => p.full_name === playerName);
+}
+
+function getPlayerIdByName(playerName) {
+    const player = allPlayers.find(p => p.full_name === playerName);
+    return player ? player.id : null;
+}
+
 async function comparePlayers() {
-    const player1Select = document.getElementById('player1');
-    const player2Select = document.getElementById('player2');
+    const player1Input = document.getElementById('player1Input');
+    const player2Input = document.getElementById('player2Input');
     const loading = document.getElementById('loading');
     const results = document.getElementById('results');
     
@@ -60,10 +77,10 @@ async function comparePlayers() {
     results.classList.add('hidden');
     loading.classList.remove('hidden');
     
-    const player1Id = player1Select.value;
-    const player2Id = player2Select.value;
-    const player1Name = player1Select.options[player1Select.selectedIndex].text;
-    const player2Name = player2Select.options[player2Select.selectedIndex].text;
+    const player1Name = player1Input.value;
+    const player2Name = player2Input.value;
+    const player1Id = getPlayerIdByName(player1Name);
+    const player2Id = getPlayerIdByName(player2Name);
     
     try {
         const response = await fetch('/api/compare', {
@@ -100,15 +117,19 @@ function displayResults(data) {
     // Display winner
     document.getElementById('winnerName').textContent = data.winner;
     
-    // Display player 1 stats
+    // Display player 1 data
     document.getElementById('player1Name').textContent = data.player1.name;
     document.getElementById('player1Score').textContent = data.player1.score;
+    displayAccolades('player1Accolades', data.player1.stats);
     displayPlayerStats('player1StatsGrid', data.player1.stats, data.player2.stats);
+    displayTicketImpact('player1Ticket', data.player1.ticket_impact);
     
-    // Display player 2 stats
+    // Display player 2 data
     document.getElementById('player2Name').textContent = data.player2.name;
     document.getElementById('player2Score').textContent = data.player2.score;
+    displayAccolades('player2Accolades', data.player2.stats);
     displayPlayerStats('player2StatsGrid', data.player2.stats, data.player1.stats);
+    displayTicketImpact('player2Ticket', data.player2.ticket_impact);
     
     // Display analysis
     document.getElementById('analysisContent').innerHTML = data.analysis;
@@ -118,6 +139,37 @@ function displayResults(data) {
     
     // Scroll to results
     results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function displayAccolades(elementId, stats) {
+    const container = document.getElementById(elementId);
+    container.innerHTML = `
+        <div class="accolade-item">
+            🏆 <span class="label">Championships:</span> ${stats.championships}
+        </div>
+        <div class="accolade-item">
+            🏅 <span class="label">MVP Awards:</span> ${stats.mvp_awards}
+        </div>
+        <div class="accolade-item">
+            ⭐ <span class="label">Best Season:</span> ${stats.best_season}
+        </div>
+        <div class="accolade-item">
+            🔥 <span class="label">Best Year PPG:</span> ${stats.best_season_ppg}
+        </div>
+        <div class="accolade-item">
+            📈 <span class="label">Best Year Total Points:</span> ${stats.best_season_total_points}
+        </div>
+    `;
+}
+
+function displayTicketImpact(elementId, ticketData) {
+    const container = document.getElementById(elementId);
+    container.innerHTML = `
+        <h4>🎟️ Ticket Price Impact</h4>
+        <div class="ticket-rating">${ticketData.rating}</div>
+        <div class="ticket-multiplier">${ticketData.multiplier}x Price Multiplier</div>
+        <div class="ticket-description">${ticketData.description}</div>
+    `;
 }
 
 function displayPlayerStats(elementId, stats, opponentStats) {

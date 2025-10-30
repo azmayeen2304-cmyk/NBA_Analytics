@@ -7,6 +7,31 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+# Championship data for notable players (manually maintained)
+CHAMPIONSHIPS = {
+    'Michael Jordan': 6, 'LeBron James': 4, 'Kobe Bryant': 5, 'Tim Duncan': 5,
+    'Magic Johnson': 5, 'Larry Bird': 3, 'Shaquille O\'Neal': 4, 'Kareem Abdul-Jabbar': 6,
+    'Stephen Curry': 4, 'Kevin Durant': 2, 'Kawhi Leonard': 2, 'Dwyane Wade': 3,
+    'Hakeem Olajuwon': 2, 'Dirk Nowitzki': 1, 'Giannis Antetokounmpo': 1,
+    'Bill Russell': 11, 'Wilt Chamberlain': 2, 'Julius Erving': 1, 'Isiah Thomas': 2,
+    'Karl Malone': 0, 'Charles Barkley': 0, 'Patrick Ewing': 0, 'John Stockton': 0,
+    'Allen Iverson': 0, 'Scottie Pippen': 6, 'Dennis Rodman': 5, 'Clyde Drexler': 1,
+    'Gary Payton': 1, 'Ray Allen': 2, 'Paul Pierce': 1, 'Kevin Garnett': 1,
+    'Tony Parker': 4, 'Manu Ginobili': 4, 'Chris Paul': 0, 'James Harden': 0,
+    'Russell Westbrook': 0, 'Kyrie Irving': 1, 'Anthony Davis': 1, 'Damian Lillard': 0
+}
+
+# MVP Awards data for notable players
+MVP_AWARDS = {
+    'Michael Jordan': 5, 'LeBron James': 4, 'Kareem Abdul-Jabbar': 6, 'Bill Russell': 5,
+    'Wilt Chamberlain': 4, 'Magic Johnson': 3, 'Larry Bird': 3, 'Moses Malone': 3,
+    'Tim Duncan': 2, 'Steve Nash': 2, 'Stephen Curry': 2, 'Giannis Antetokounmpo': 2,
+    'Karl Malone': 2, 'Kobe Bryant': 1, 'Shaquille O\'Neal': 1, 'Hakeem Olajuwon': 1,
+    'David Robinson': 1, 'Allen Iverson': 1, 'Kevin Garnett': 1, 'Dirk Nowitzki': 1,
+    'Derrick Rose': 1, 'Kevin Durant': 1, 'Russell Westbrook': 1, 'James Harden': 1,
+    'Nikola Jokic': 2, 'Joel Embiid': 1, 'Charles Barkley': 1, 'Julius Erving': 1
+}
+
 def get_all_players():
     """Get all NBA players and filter by years active between 1985-2024"""
     all_players = players.get_players()
@@ -25,7 +50,7 @@ def get_all_players():
     filtered_players.sort(key=lambda x: x['full_name'])
     return filtered_players
 
-def get_player_career_stats(player_id):
+def get_player_career_stats(player_id, player_name):
     """Get career statistics for a player"""
     try:
         time.sleep(0.6)  # Rate limiting for NBA API
@@ -38,39 +63,42 @@ def get_player_career_stats(player_id):
         
         if career_df.empty:
             return None
-            
-        # Get regular season stats only
-        regular_season = career_df[career_df['SEASON_ID'].str.contains('Regular')]
-        
-        if regular_season.empty:
-            return None
         
         # Calculate career averages and totals
-        total_games = regular_season['GP'].sum()
-        total_minutes = regular_season['MIN'].sum()
+        total_games = career_df['GP'].sum()
+        total_minutes = career_df['MIN'].sum()
         
         if total_games == 0:
             return None
         
+        # Find best season by total points scored
+        best_season = career_df.loc[career_df['PTS'].idxmax()]
+        best_year_ppg = round(best_season['PTS'] / best_season['GP'], 1) if best_season['GP'] > 0 else 0
+        
         stats = {
             'games_played': int(total_games),
-            'seasons': len(regular_season),
-            'total_points': int(regular_season['PTS'].sum()),
-            'total_rebounds': int(regular_season['REB'].sum()),
-            'total_assists': int(regular_season['AST'].sum()),
-            'total_steals': int(regular_season['STL'].sum()),
-            'total_blocks': int(regular_season['BLK'].sum()),
-            'ppg': round(regular_season['PTS'].sum() / total_games, 1),
-            'rpg': round(regular_season['REB'].sum() / total_games, 1),
-            'apg': round(regular_season['AST'].sum() / total_games, 1),
-            'spg': round(regular_season['STL'].sum() / total_games, 1),
-            'bpg': round(regular_season['BLK'].sum() / total_games, 1),
-            'fg_pct': round(regular_season['FG_PCT'].mean() * 100, 1),
-            'fg3_pct': round(regular_season['FG3_PCT'].mean() * 100, 1),
-            'ft_pct': round(regular_season['FT_PCT'].mean() * 100, 1),
+            'seasons': len(career_df),
+            'total_points': int(career_df['PTS'].sum()),
+            'total_rebounds': int(career_df['REB'].sum()),
+            'total_assists': int(career_df['AST'].sum()),
+            'total_steals': int(career_df['STL'].sum()),
+            'total_blocks': int(career_df['BLK'].sum()),
+            'ppg': round(career_df['PTS'].sum() / total_games, 1),
+            'rpg': round(career_df['REB'].sum() / total_games, 1),
+            'apg': round(career_df['AST'].sum() / total_games, 1),
+            'spg': round(career_df['STL'].sum() / total_games, 1),
+            'bpg': round(career_df['BLK'].sum() / total_games, 1),
+            'fg_pct': round(career_df['FG_PCT'].mean() * 100, 1),
+            'fg3_pct': round(career_df['FG3_PCT'].mean() * 100, 1),
+            'ft_pct': round(career_df['FT_PCT'].mean() * 100, 1),
             'mpg': round(total_minutes / total_games, 1),
-            'first_season': regular_season.iloc[0]['SEASON_ID'],
-            'last_season': regular_season.iloc[-1]['SEASON_ID']
+            'first_season': career_df.iloc[0]['SEASON_ID'],
+            'last_season': career_df.iloc[-1]['SEASON_ID'],
+            'best_season': best_season['SEASON_ID'],
+            'best_season_total_points': int(best_season['PTS']),
+            'best_season_ppg': best_year_ppg,
+            'championships': CHAMPIONSHIPS.get(player_name, 0),
+            'mvp_awards': MVP_AWARDS.get(player_name, 0)
         }
         
         return stats
@@ -91,7 +119,10 @@ def calculate_player_score(stats):
         'fg3_pct': 0.3,  # 3-point percentage
         'ft_pct': 0.2,   # Free throw percentage
         'games_played': 0.01,  # Longevity bonus
-        'seasons': 2.0   # Career length
+        'seasons': 2.0,   # Career length
+        'championships': 8.0,  # Championships are very important
+        'mvp_awards': 10.0,  # MVP awards are crucial
+        'best_season_ppg': 0.5  # Best season performance bonus
     }
     
     score = 0
@@ -100,6 +131,47 @@ def calculate_player_score(stats):
             score += stats[key] * weight
     
     return round(score, 2)
+
+def calculate_ticket_price_impact(best_season_ppg, championships, mvp_awards):
+    """
+    Calculate ticket price impact based on player's best season performance
+    Returns a rating and multiplier for ticket prices
+    """
+    # Base price multiplier starts at 1.0x
+    multiplier = 1.0
+    
+    # PPG impact (each point above 20 adds 2% to ticket price)
+    if best_season_ppg > 20:
+        multiplier += (best_season_ppg - 20) * 0.02
+    
+    # Championship bonus (each ring adds 10% to ticket price)
+    multiplier += championships * 0.10
+    
+    # MVP bonus (each MVP adds 15% to ticket price)
+    multiplier += mvp_awards * 0.15
+    
+    # Determine rating category
+    if multiplier >= 2.5:
+        rating = "SUPERSTAR ⭐⭐⭐⭐⭐"
+        description = "Stadium would be PACKED! Tickets would be 2-3x normal price."
+    elif multiplier >= 2.0:
+        rating = "ELITE STAR ⭐⭐⭐⭐"
+        description = "High demand! Tickets would be 2x normal price."
+    elif multiplier >= 1.5:
+        rating = "ALL-STAR ⭐⭐⭐"
+        description = "Strong attendance boost! Tickets 1.5x normal price."
+    elif multiplier >= 1.2:
+        rating = "SOLID PLAYER ⭐⭐"
+        description = "Good draw! Modest ticket price increase."
+    else:
+        rating = "ROLE PLAYER ⭐"
+        description = "Standard pricing applies."
+    
+    return {
+        'rating': rating,
+        'multiplier': round(multiplier, 2),
+        'description': description
+    }
 
 def generate_comparison_analysis(player1_name, player2_name, stats1, stats2, score1, score2):
     """Generate a detailed comparison analysis"""
@@ -192,8 +264,8 @@ def api_compare_players():
         return jsonify({'error': 'Missing required parameters'}), 400
     
     # Get stats for both players
-    stats1 = get_player_career_stats(player1_id)
-    stats2 = get_player_career_stats(player2_id)
+    stats1 = get_player_career_stats(player1_id, player1_name)
+    stats2 = get_player_career_stats(player2_id, player2_name)
     
     if not stats1:
         return jsonify({'error': f'No data available for {player1_name} in the 1985-2024 period'}), 404
@@ -205,6 +277,18 @@ def api_compare_players():
     score1 = calculate_player_score(stats1)
     score2 = calculate_player_score(stats2)
     
+    # Calculate ticket price impact
+    ticket1 = calculate_ticket_price_impact(
+        stats1['best_season_ppg'], 
+        stats1['championships'], 
+        stats1['mvp_awards']
+    )
+    ticket2 = calculate_ticket_price_impact(
+        stats2['best_season_ppg'], 
+        stats2['championships'], 
+        stats2['mvp_awards']
+    )
+    
     # Generate analysis
     analysis = generate_comparison_analysis(player1_name, player2_name, stats1, stats2, score1, score2)
     
@@ -212,12 +296,14 @@ def api_compare_players():
         'player1': {
             'name': player1_name,
             'stats': stats1,
-            'score': score1
+            'score': score1,
+            'ticket_impact': ticket1
         },
         'player2': {
             'name': player2_name,
             'stats': stats2,
-            'score': score2
+            'score': score2,
+            'ticket_impact': ticket2
         },
         'winner': player1_name if score1 > score2 else player2_name,
         'analysis': analysis
